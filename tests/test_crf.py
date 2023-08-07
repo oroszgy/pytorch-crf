@@ -2,10 +2,11 @@ import itertools
 import math
 import random
 
-from pytest import approx
 import pytest
 import torch
 import torch.nn as nn
+from pytest import approx as approx_
+from torch import Tensor
 
 from torchcrf import CRF
 
@@ -13,6 +14,12 @@ RANDOM_SEED = 1478754
 
 random.seed(RANDOM_SEED)
 torch.manual_seed(RANDOM_SEED)
+
+
+def approx(expected, *args, **kwargs):
+    if isinstance(expected, Tensor):
+        expected = expected.detach().numpy()
+    return approx_(expected, *args, **kwargs)
 
 
 def compute_score(crf, emission, tag):
@@ -47,10 +54,9 @@ def make_emissions(crf, seq_length=3, batch_size=2):
 
 def make_tags(crf, seq_length=3, batch_size=2):
     # shape: (seq_length, batch_size)
-    ts = torch.tensor([[random.randrange(crf.num_tags)
-                        for b in range(batch_size)]
-                       for _ in range(seq_length)],
-                      dtype=torch.long)
+    ts = torch.tensor(
+        [[random.randrange(crf.num_tags) for b in range(batch_size)] for _ in range(seq_length)], dtype=torch.long
+    )
     if crf.batch_first:
         ts = ts.transpose(0, 1)
     return ts
@@ -64,9 +70,9 @@ class TestInit:
         assert crf.num_tags == num_tags
         assert not crf.batch_first
         assert isinstance(crf.start_transitions, nn.Parameter)
-        assert crf.start_transitions.shape == (num_tags, )
+        assert crf.start_transitions.shape == (num_tags,)
         assert isinstance(crf.end_transitions, nn.Parameter)
-        assert crf.end_transitions.shape == (num_tags, )
+        assert crf.end_transitions.shape == (num_tags,)
         assert isinstance(crf.transitions, nn.Parameter)
         assert crf.transitions.shape == (num_tags, num_tags)
         assert repr(crf) == f'CRF(num_tags={num_tags})'
@@ -104,14 +110,13 @@ class TestForward:
         mask = mask.transpose(0, 1)
 
         # Compute log likelihood manually
-        manual_llh = 0.
+        manual_llh = 0.0
         for emission, tag, mask_ in zip(emissions, tags, mask):
             seq_len = mask_.sum()
             emission, tag = emission[:seq_len], tag[:seq_len]
             numerator = compute_score(crf, emission, tag)
             all_scores = [
-                compute_score(crf, emission, t)
-                for t in itertools.product(range(crf.num_tags), repeat=seq_len)
+                compute_score(crf, emission, t) for t in itertools.product(range(crf.num_tags), repeat=seq_len)
             ]
             denominator = math.log(sum(math.exp(s) for s in all_scores))
             manual_llh += numerator - denominator
@@ -145,7 +150,7 @@ class TestForward:
         assert torch.is_tensor(llh)
         assert llh.shape == ()
 
-        total_llh = 0.
+        total_llh = 0.0
         for i in range(batch_size):
             # shape: (seq_length, 1, num_tags)
             emissions_ = emissions[:, i, :].unsqueeze(1)
@@ -168,7 +173,7 @@ class TestForward:
         llh = crf(emissions, tags, reduction='none')
 
         assert torch.is_tensor(llh)
-        assert llh.shape == (batch_size, )
+        assert llh.shape == (batch_size,)
 
         # shape: (batch_size, seq_length, num_tags)
         emissions = emissions.transpose(0, 1)
@@ -180,8 +185,7 @@ class TestForward:
         for emission, tag in zip(emissions, tags):
             numerator = compute_score(crf, emission, tag)
             all_scores = [
-                compute_score(crf, emission, t)
-                for t in itertools.product(range(crf.num_tags), repeat=seq_length)
+                compute_score(crf, emission, t) for t in itertools.product(range(crf.num_tags), repeat=seq_length)
             ]
             denominator = math.log(sum(math.exp(s) for s in all_scores))
             manual_llh.append(numerator - denominator)
@@ -213,8 +217,7 @@ class TestForward:
         for emission, tag in zip(emissions, tags):
             numerator = compute_score(crf, emission, tag)
             all_scores = [
-                compute_score(crf, emission, t)
-                for t in itertools.product(range(crf.num_tags), repeat=seq_length)
+                compute_score(crf, emission, t) for t in itertools.product(range(crf.num_tags), repeat=seq_length)
             ]
             denominator = math.log(sum(math.exp(s) for s in all_scores))
             manual_llh += numerator - denominator
@@ -251,8 +254,7 @@ class TestForward:
             emission, tag = emission[:seq_len], tag[:seq_len]
             numerator = compute_score(crf, emission, tag)
             all_scores = [
-                compute_score(crf, emission, t)
-                for t in itertools.product(range(crf.num_tags), repeat=seq_len)
+                compute_score(crf, emission, t) for t in itertools.product(range(crf.num_tags), repeat=seq_len)
             ]
             denominator = math.log(sum(math.exp(s) for s in all_scores))
             manual_llh += numerator - denominator
@@ -299,9 +301,9 @@ class TestForward:
 
         with pytest.raises(ValueError) as excinfo:
             crf(emissions, tags)
-        assert (
-            'the first two dimensions of emissions and tags must match, '
-            'got (1, 2) and (2, 2)') in str(excinfo.value)
+        assert ('the first two dimensions of emissions and tags must match, ' 'got (1, 2) and (2, 2)') in str(
+            excinfo.value
+        )
 
     def test_emissions_last_dimension_not_equal_to_number_of_tags(self):
         emissions = torch.randn(1, 2, 3)
@@ -365,8 +367,8 @@ class TestDecode:
             assert all(isinstance(t, int) for t in best_tag)
             emission = emission[:seq_len]
             manual_best_tag = max(
-                itertools.product(range(crf.num_tags), repeat=seq_len),
-                key=lambda t: compute_score(crf, emission, t))
+                itertools.product(range(crf.num_tags), repeat=seq_len), key=lambda t: compute_score(crf, emission, t)
+            )
             assert tuple(best_tag) == manual_best_tag
 
     def test_works_without_mask(self):
@@ -376,8 +378,7 @@ class TestDecode:
 
         best_tags_no_mask = crf.decode(emissions)
         # No mask means mask is all ones
-        best_tags_mask = crf.decode(
-            emissions, mask=emissions.new_ones(emissions.shape[:2]).byte())
+        best_tags_mask = crf.decode(emissions, mask=emissions.new_ones(emissions.shape[:2]).byte())
 
         assert best_tags_no_mask == best_tags_mask
 
@@ -447,9 +448,9 @@ class TestDecode:
 
         with pytest.raises(ValueError) as excinfo:
             crf.decode(emissions, mask=mask)
-        assert (
-            'the first two dimensions of emissions and mask must match, '
-            'got (1, 2) and (2, 2)') in str(excinfo.value)
+        assert ('the first two dimensions of emissions and mask must match, ' 'got (1, 2) and (2, 2)') in str(
+            excinfo.value
+        )
 
     def test_first_timestep_mask_is_not_all_on(self):
         emissions = torch.randn(3, 2, 4)

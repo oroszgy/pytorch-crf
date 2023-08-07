@@ -1,0 +1,82 @@
+[tool.poetry]
+name = "pytorch-crf"
+version = "0.5.0"
+description = "Conditional random field in PyTorch"
+authors = ["Gyorgy Orosz <gyorgy@orosz.link>", "Kemal Kurniawan <kemal@kkurniawan.com>"]
+maintainers = ["Gyorgy Orosz <gyorgy@orosz.link>"]
+license = "MIT"
+readme = "README.md"
+classifiers = [
+    'Development Status :: 4 - Beta',
+    'Intended Audience :: Developers',
+    'Intended Audience :: Science/Research',
+    'License :: OSI Approved :: MIT License',
+    'Programming Language :: Python :: 3.8',
+    'Programming Language :: Python :: 3.9',
+    'Programming Language :: Python :: 3.10',
+    'Programming Language :: Python :: 3.11',
+]
+keywords = ["torch", "pytorch", "crf", "conditional random field", "torchcrf"]
+packages = [{ include = "torchcrf" }]
+
+
+[[tool.poetry.source]]
+name = "torch_cpu"
+url = "https://download.pytorch.org/whl/cpu"
+priority = "supplemental"
+
+[[tool.poetry.source]]
+name = "PyPI"
+priority = "primary"
+
+
+[tool.poetry.dependencies]
+python = ">=3.9,<4.0"
+pytest-cov = "^4.1.0"
+
+[tool.poetry.group.dev.dependencies]
+torch = { version = "2.0.1", source = "torch_cpu" }
+pytest = "~7.4.0"
+ruff = "^0.0.282"
+black = "^23.7.0"
+numpy = "^1.25.2"
+
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--cov torchcrf --cov-report term-missing --cov-report html -s -v"
+cache_dir = ".cache/pytest"
+
+
+[tool.black]
+skip-string-normalization = true
+line-length = 120
+target-version = ['py311']
+
+
+[tool.ruff]
+cache-dir=".cache/ruff"
+line-length = 120
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "C",  # flake8-comprehensions
+    "B",  # flake8-bugbear
+]
+ignore = [
+    "E501",  # line too long, handled by black
+    "C901",  # too complex
+]
+
+[tool.ruff.isort]
+order-by-type = true
+relative-imports-order = "closest-to-furthest"
+extra-standard-library = ["typing"]
+section-order = ["future", "standard-library", "third-party", "first-party", "local-folder"]
+known-first-party = []
+
+[build-system]
+requires = ["poetry-core>=1.6"]
+build-backend = "poetry.core.masonry.api"

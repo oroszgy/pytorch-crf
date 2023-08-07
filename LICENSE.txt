@@ -1,4 +1,4 @@
-Copyright 2017 Kemal Kurniawan <kemal@kkurniawan.com>
+Copyright 2017-2023 Kemal Kurniawan <kemal@kkurniawan.com>, 2023- Gyorgy Orosz <gyorgy@orosz.link>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of
 this software and associated documentation files (the "Software"), to deal in

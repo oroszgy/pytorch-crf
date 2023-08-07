@@ -1,3 +1,0 @@
-[flake8]
-ignore = E,W  # let yapf handle styles
-show-source = True
